@@ -12,6 +12,29 @@ servers:
     description: Local development server
 
 paths:
+  /health:
+    get:
+      tags:
+        - System
+      summary: Health check
+      description: Endpoint para verificar se a API está rodando corretamente.
+      responses:
+        200:
+          description: API está saudável
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+                  uptime:
+                    type: number
+                    format: float
+                    description: Tempo em segundos que a API está em funcionamento.
+                required:
+                  - status
   /admin/users:
     get:
       tags:

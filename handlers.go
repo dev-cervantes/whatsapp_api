@@ -39,6 +39,24 @@ func (v Values) Get(key string) string {
 	return v.m[key]
 }
 
+func (s *server) GetHealth() http.HandlerFunc {
+	type HealthResponse struct {
+		Status    string `json:"status"`
+		Timestamp string `json:"timestamp"`
+	}
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		response := HealthResponse{
+			Status:    "ok",
+			Timestamp: time.Now().UTC().Format(time.RFC3339),
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(response)
+	}
+}
+
 // messageTypes moved to constants.go as supportedEventTypes
 
 func (s *server) authadmin(next http.Handler) http.Handler {
