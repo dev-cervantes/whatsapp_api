@@ -148,6 +148,7 @@ func (s *server) Connect() http.HandlerFunc {
 		txtid := r.Context().Value("userinfo").(Values).Get("Id")
 		token := r.Context().Value("userinfo").(Values).Get("Token")
 		eventstring := ""
+		systemName := r.Header.Get("X-systemname")
 
 		// Decodes request BODY looking for events to subscribe
 		decoder := json.NewDecoder(r.Body)
@@ -190,7 +191,7 @@ func (s *server) Connect() http.HandlerFunc {
 
 			log.Info().Str("jid", jid).Msg("Attempt to connect")
 			killchannel[txtid] = make(chan bool)
-			go s.startClient(txtid, jid, token, subscribedEvents)
+			go s.startClient(txtid, jid, token, subscribedEvents, &systemName)
 
 			if t.Immediate == false {
 				log.Warn().Msg("Waiting 10 seconds")
