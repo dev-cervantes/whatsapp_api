@@ -2,7 +2,7 @@ module wuzapi
 
 go 1.23.0
 
-toolchain go1.23.1
+toolchain go1.23.5
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.36.3
@@ -15,7 +15,7 @@ require (
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/rs/zerolog v1.34.0
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
-	go.mau.fi/whatsmeow v0.0.0-20250521125706-91ac75c2f61a
+	go.mau.fi/whatsmeow v0.0.0-20250603144927-2b269a5d396a
 	google.golang.org/protobuf v1.36.6
 )
 
@@ -45,7 +45,6 @@ require (
 	golang.org/x/exp v0.0.0-20250506013437-ce4c2cf36ca6 // indirect
 	golang.org/x/term v0.32.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
-	golang.org/x/time v0.6.0 // indirect
 	modernc.org/libc v1.65.8 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

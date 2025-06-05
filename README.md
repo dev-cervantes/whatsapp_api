@@ -28,6 +28,7 @@ Be very careful—do not use this to send SPAM or anything similar. Use at your 
 
 **Optional:**
 * Docker (for containerization)
+* WSL (for Elastic Beanstalk AWS)
 
 ## Updating dependencies
 
@@ -42,6 +43,19 @@ go mod tidy
 
 ```
 go build .
+```
+
+## Deploy
+### Aplicação na AWS Elastic Beanstalk para versões
+
+**Para realizar o deploy da aplicação no Elastic Beanstalk da AWS, siga os passos:**
+
+1. No Windows, instale e configure o WSL (Windows Subsystem for Linux) para executar comandos Linux.
+2. Abra o terminal do WSL na pasta do projeto.
+3. Execute o script de deploy:
+
+```bash
+./deploy.sh
 ```
 
 ## Run

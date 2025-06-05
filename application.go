@@ -35,7 +35,7 @@ type server struct {
 // Replace the global variables
 var (
 	address       = flag.String("address", "0.0.0.0", "Bind IP Address")
-	port          = flag.String("port", "8080", "Listen Port")
+	port          = flag.String("port", "5000", "Listen Port")
 	waDebug       = flag.String("wadebug", "", "Enable whatsmeow debug (INFO or DEBUG)")
 	logType       = flag.String("logtype", "console", "Type of log output (console or json)")
 	skipMedia     = flag.Bool("skipmedia", false, "Do not attempt to download media in messages")
@@ -188,7 +188,7 @@ func main() {
 	var storeConnStr string
 	if config.Type == "postgres" {
 		storeConnStr = fmt.Sprintf(
-			"user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",
+			"user=%s password=%s dbname=%s host=%s port=%s",
 			config.User, config.Password, config.Name, config.Host, config.Port,
 		)
 		container, err = sqlstore.New(context.Background(), "postgres", storeConnStr, dbLog)

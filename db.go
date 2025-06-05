@@ -58,7 +58,7 @@ func getDatabaseConfig(exPath string) DatabaseConfig {
 
 func initializePostgres(config DatabaseConfig) (*sqlx.DB, error) {
 	dsn := fmt.Sprintf(
-		"user=%s password=%s dbname=%s host=%s port=%s sslmode=disable",
+		"user=%s password=%s dbname=%s host=%s port=%s",
 		config.User, config.Password, config.Name, config.Host, config.Port,
 	)
 
