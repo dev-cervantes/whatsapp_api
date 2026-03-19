@@ -8,6 +8,7 @@ services:
       - "8080:5000"
     environment:
       - WUZAPI_ADMIN_TOKEN
+      - SESSION_DEVICE_NAME
       - WUZAPI_GLOBAL_ENCRYPTION_KEY
       - WUZAPI_GLOBAL_HMAC_KEY
       - DB_USER
@@ -16,6 +17,8 @@ services:
       - DB_HOST
       - DB_PORT
       - TZ
+      - WUZAPI_GLOBAL_WEBHOOK
+      - WEBHOOK_FORMAT
     networks:
       - whatsappapi-network
     restart: always
