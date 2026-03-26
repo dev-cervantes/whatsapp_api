@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"image"
 	"image/jpeg"
+	"io"
 	"net/http"
 	"net/url"
 	"os"
@@ -18,6 +19,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"github.com/gorilla/mux"
 	"github.com/nfnt/resize"
@@ -25,6 +28,9 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/vincent-petithory/dataurl"
 	"go.mau.fi/whatsmeow"
+	"golang.org/x/text/encoding/charmap"
+	"golang.org/x/text/transform"
+	"golang.org/x/text/unicode/norm"
 
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -221,7 +227,8 @@ func (s *server) Connect() http.HandlerFunc {
 		txtid := r.Context().Value("userinfo").(Values).Get("Id")
 		token := r.Context().Value("userinfo").(Values).Get("Token")
 		eventstring := ""
-		systemName := r.Header.Get("X-systemname")
+		systemNameRaw := r.Header.Get("X-systemname")
+		systemName := sanitizeSystemName(systemNameRaw)
 
 		// Decodes request BODY looking for events to subscribe
 		decoder := json.NewDecoder(r.Body)
@@ -267,7 +274,8 @@ func (s *server) Connect() http.HandlerFunc {
 
 		log.Info().Str("jid", jid).Msg("Attempt to connect")
 		killchannel[txtid] = make(chan bool, 1)
-		go s.startClient(txtid, jid, token, subscribedEvents, &systemName)
+		safeSystemName := systemName
+		go s.startClient(txtid, jid, token, subscribedEvents, &safeSystemName)
 
 		if t.Immediate == false {
 			log.Warn().Msg("Waiting 10 seconds")
@@ -813,13 +821,13 @@ func (s *server) GetStatus() http.HandlerFunc {
 func (s *server) SendDocument() http.HandlerFunc {
 
 	type documentStruct struct {
-		Caption     string
-		Phone       string
-		Document    string
-		FileName    string
-		Id          string
-		MimeType    string
-		ContextInfo waE2E.ContextInfo
+		Caption       string
+		Phone         string
+		Document      string
+		FileName      string
+		Id            string
+		MimeType      string
+		ContextInfo   waE2E.ContextInfo
 		QuotedMessage *waE2E.Message `json:"QuotedMessage,omitempty"`
 	}
 
@@ -968,15 +976,15 @@ func (s *server) SendDocument() http.HandlerFunc {
 func (s *server) SendAudio() http.HandlerFunc {
 
 	type audioStruct struct {
-		Phone       string
-		Audio       string
-		Caption     string
-		Id          string
-		PTT         *bool  `json:"ptt,omitempty"`
-		MimeType    string `json:"mimetype,omitempty"`
-		Seconds     uint32
-		Waveform    []byte
-		ContextInfo waE2E.ContextInfo
+		Phone         string
+		Audio         string
+		Caption       string
+		Id            string
+		PTT           *bool  `json:"ptt,omitempty"`
+		MimeType      string `json:"mimetype,omitempty"`
+		Seconds       uint32
+		Waveform      []byte
+		ContextInfo   waE2E.ContextInfo
 		QuotedMessage *waE2E.Message `json:"QuotedMessage,omitempty"`
 	}
 
@@ -1650,11 +1658,11 @@ func (s *server) SendVideo() http.HandlerFunc {
 func (s *server) SendContact() http.HandlerFunc {
 
 	type contactStruct struct {
-		Phone       string
-		Id          string
-		Name        string
-		Vcard       string
-		ContextInfo waE2E.ContextInfo
+		Phone         string
+		Id            string
+		Name          string
+		Vcard         string
+		ContextInfo   waE2E.ContextInfo
 		QuotedMessage *waE2E.Message `json:"QuotedMessage,omitempty"`
 	}
 
@@ -1767,12 +1775,12 @@ func (s *server) SendContact() http.HandlerFunc {
 func (s *server) SendLocation() http.HandlerFunc {
 
 	type locationStruct struct {
-		Phone       string
-		Id          string
-		Name        string
-		Latitude    float64
-		Longitude   float64
-		ContextInfo waE2E.ContextInfo
+		Phone         string
+		Id            string
+		Name          string
+		Latitude      float64
+		Longitude     float64
+		ContextInfo   waE2E.ContextInfo
 		QuotedMessage *waE2E.Message `json:"QuotedMessage,omitempty"`
 	}
 
@@ -2272,8 +2280,8 @@ func (s *server) SendMessage() http.HandlerFunc {
 		LinkPreview   bool
 		Id            string
 		ContextInfo   waE2E.ContextInfo
-		QuotedText    string          `json:"QuotedText,omitempty"`
-		QuotedMessage *waE2E.Message  `json:"QuotedMessage,omitempty"`
+		QuotedText    string         `json:"QuotedText,omitempty"`
+		QuotedMessage *waE2E.Message `json:"QuotedMessage,omitempty"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
 		txtid := r.Context().Value("userinfo").(Values).Get("Id")
@@ -6634,4 +6642,49 @@ func (s *server) DownloadSticker() http.HandlerFunc {
 		}
 		return
 	}
+}
+
+func sanitizeSystemName(input string) string {
+
+	if !utf8.ValidString(input) {
+		reader := transform.NewReader(strings.NewReader(input), charmap.ISO8859_1.NewDecoder())
+		result, err := io.ReadAll(reader)
+		if err == nil {
+			input = string(result)
+		}
+	}
+
+	t := norm.NFD.String(input)
+
+	var sb strings.Builder
+
+	for _, r := range t {
+		//Remove acentos
+		if unicode.Is(unicode.Mn, r) {
+			continue
+		}
+
+		switch r {
+		case '&':
+			sb.WriteString("e")
+		case '@':
+			sb.WriteString("a")
+		case '+':
+			sb.WriteString("mais")
+		case '%':
+			sb.WriteString("pct")
+		case '$':
+			sb.WriteString("s")
+
+		//Caracteres permitidos
+		default:
+			if r <= 127 && (unicode.IsLetter(r) || unicode.IsDigit(r)) {
+				sb.WriteRune(r)
+			} else if r == ' ' || r == '-' || r == '_' {
+				sb.WriteRune(r)
+			}
+		}
+	}
+
+	return strings.Join(strings.Fields(sb.String()), " ")
 }
