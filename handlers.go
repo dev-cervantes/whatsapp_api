@@ -18,6 +18,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
 
 	"github.com/gorilla/mux"
 	"github.com/nfnt/resize"
@@ -25,6 +26,7 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/vincent-petithory/dataurl"
 	"go.mau.fi/whatsmeow"
+	"golang.org/x/text/unicode/norm"
 
 	"go.mau.fi/whatsmeow/proto/waCommon"
 	"go.mau.fi/whatsmeow/proto/waE2E"
@@ -221,7 +223,8 @@ func (s *server) Connect() http.HandlerFunc {
 		txtid := r.Context().Value("userinfo").(Values).Get("Id")
 		token := r.Context().Value("userinfo").(Values).Get("Token")
 		eventstring := ""
-		systemName := r.Header.Get("X-systemname")
+		systemNameRaw := r.Header.Get("X-systemname")
+		systemName := sanitizeSystemName(systemNameRaw)
 
 		// Decodes request BODY looking for events to subscribe
 		decoder := json.NewDecoder(r.Body)
@@ -267,7 +270,8 @@ func (s *server) Connect() http.HandlerFunc {
 
 		log.Info().Str("jid", jid).Msg("Attempt to connect")
 		killchannel[txtid] = make(chan bool, 1)
-		go s.startClient(txtid, jid, token, subscribedEvents, &systemName)
+		safeSystemName := systemName
+		go s.startClient(txtid, jid, token, subscribedEvents, &safeSystemName)
 
 		if t.Immediate == false {
 			log.Warn().Msg("Waiting 10 seconds")
@@ -6634,4 +6638,42 @@ func (s *server) DownloadSticker() http.HandlerFunc {
 		}
 		return
 	}
+}
+
+func sanitizeSystemName(input string) string {
+	t := norm.NFD.String(input)
+
+	var sb strings.Builder
+
+	for _, r := range t {
+		//Remove acentos
+		if unicode.Is(unicode.Mn, r) {
+			continue
+		}
+
+		switch r {
+		case '&':
+			sb.WriteString("e")
+		case '@':
+			sb.WriteString("a")
+		case '+':
+			sb.WriteString("mais")
+		case '%':
+			sb.WriteString("pct")
+		case '$':
+			sb.WriteString("s")
+
+		//Caracteres permitidos
+		default:
+			if r <= 127 && (unicode.IsLetter(r) || unicode.IsDigit(r)) {
+				sb.WriteRune(r)
+			} else if r == ' ' || r == '-' || r == '_' {
+				sb.WriteRune(r)
+			}
+		}
+	}
+
+	result := strings.Join(strings.Fields(sb.String()), " ")
+
+	return result
 }
