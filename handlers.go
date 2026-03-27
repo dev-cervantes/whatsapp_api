@@ -6646,10 +6646,11 @@ func (s *server) DownloadSticker() http.HandlerFunc {
 
 func sanitizeSystemName(input string) string {
 
-	if !utf8.ValidString(input) {
+	if decoded, err := base64.StdEncoding.DecodeString(input); err == nil && utf8.Valid(decoded) {
+		input = string(decoded)
+	} else if !utf8.ValidString(input) {
 		reader := transform.NewReader(strings.NewReader(input), charmap.ISO8859_1.NewDecoder())
-		result, err := io.ReadAll(reader)
-		if err == nil {
+		if result, err := io.ReadAll(reader); err == nil {
 			input = string(result)
 		}
 	}
