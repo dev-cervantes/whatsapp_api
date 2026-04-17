@@ -44,8 +44,12 @@ import (
 
 const (
 	openGraphFetchTimeout    = 5 * time.Second
-	openGraphPageMaxBytes    = 2 * 1024 * 1024  // 2MB
-	openGraphImageMaxBytes   = 10 * 1024 * 1024 // 10MB
+	fetchImageMaxBytes       = 16 * 1024 * 1024  // 16MB
+	fetchVideoMaxBytes       = 100 * 1024 * 1024 // 100MB
+	fetchAudioMaxBytes       = 16 * 1024 * 1024  // 16MB
+	fetchDocumentMaxBytes    = 100 * 1024 * 1024 // 100MB
+	openGraphPageMaxBytes    = 2 * 1024 * 1024   // 2MB
+	openGraphImageMaxBytes   = 10 * 1024 * 1024  // 10MB
 	openGraphThumbnailWidth  = 100
 	openGraphThumbnailHeight = 100
 	openGraphJpegQuality     = 80
@@ -136,6 +140,7 @@ func isHTTPURL(input string) bool {
 	}
 	return parsed.Host != ""
 }
+
 func fetchURLBytes(ctx context.Context, resourceURL string, limit int64) ([]byte, string, error) {
 	req, err := http.NewRequestWithContext(ctx, "GET", resourceURL, nil)
 	if err != nil {
@@ -538,6 +543,7 @@ func ProcessOutgoingMedia(userID string, contactJID string, messageID string, da
 
 	// Process S3 upload if enabled
 	if s3Config.Enabled && (s3Config.MediaDelivery == "s3" || s3Config.MediaDelivery == "both") {
+		ensureS3ClientForUser(userID)
 		// Process S3 upload (outgoing messages are always in outbox)
 		s3Data, err := GetS3Manager().ProcessMediaForS3(
 			context.Background(),

@@ -46,11 +46,12 @@ type server struct {
 // Replace the global variables
 var (
 	address             = flag.String("address", "0.0.0.0", "Bind IP Address")
-	port                = flag.String("port", "5000", "Listen Port")
+	port                = flag.String("port", "8080", "Listen Port")
 	waDebug             = flag.String("wadebug", "", "Enable whatsmeow debug (INFO or DEBUG)")
 	logType             = flag.String("logtype", "console", "Type of log output (console or json)")
 	skipMedia           = flag.Bool("skipmedia", false, "Do not attempt to download media in messages")
-	osName              = flag.String("osname", "WhatsApp API", "Connection OSName in Whatsapp")
+	osName              = flag.String("osname", "Mac OS 10", "Connection OSName in Whatsapp")
+	platformType        = flag.String("platformtype", "DESKTOP", "Device platform type (DESKTOP, IPAD, ANDROID_TABLET, IOS_PHONE, ANDROID_PHONE, etc.)")
 	colorOutput         = flag.Bool("color", false, "Enable colored output for console logs")
 	sslcert             = flag.String("sslcertificate", "", "SSL Certificate File")
 	sslprivkey          = flag.String("sslprivatekey", "", "SSL Certificate Private Key File")
@@ -225,6 +226,11 @@ func main() {
 		*osName = v
 	}
 
+	// Override platformType from environment variable if set
+	if v := os.Getenv("SESSION_PLATFORM_TYPE"); v != "" {
+		*platformType = v
+	}
+
 	if *versionFlag {
 		fmt.Printf("WuzAPI version %s\n", version)
 		os.Exit(0)
@@ -377,15 +383,8 @@ func main() {
 		}
 	}()
 
-	// Initialize the schema
-	if err = initializeSchema(db); err != nil {
-		log.Fatal().Err(err).Msg("Failed to initialize schema")
-		// Perform cleanup before exiting
-		if err := db.Close(); err != nil {
-			log.Error().Err(err).Msg("Failed to close database connection during cleanup")
-		}
-		os.Exit(1)
-	}
+	// Set DB reference in S3Manager for lazy client initialization
+	GetS3Manager().SetDB(db)
 
 	var dbLog waLog.Logger
 	if *waDebug != "" {
@@ -397,17 +396,27 @@ func main() {
 	var storeConnStr string
 	if config.Type == "postgres" {
 		storeConnStr = fmt.Sprintf(
-			"user=%s password=%s dbname=%s host=%s port=%s",
-			config.User, config.Password, config.Name, config.Host, config.Port,
+			"user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
+			config.User, config.Password, config.Name, config.Host, config.Port, config.SSLMode,
 		)
 		container, err = sqlstore.New(context.Background(), "postgres", storeConnStr, dbLog)
 	} else {
-		storeConnStr = "file:" + filepath.Join(config.Path, "main.db") + "?_pragma=foreign_keys(1)&_busy_timeout=3000"
+		storeConnStr = "file:" + filepath.ToSlash(filepath.Join(config.Path, "main.db")) + "?_pragma=foreign_keys(1)&_pragma=journal_mode(WAL)&_timeout=10000"
 		container, err = sqlstore.New(context.Background(), "sqlite", storeConnStr, dbLog)
 	}
 
 	if err != nil {
 		log.Fatal().Err(err).Msg("Error creating sqlstore")
+		os.Exit(1)
+	}
+
+	// Initialize the schema
+	if err = initializeSchema(db); err != nil {
+		log.Fatal().Err(err).Msg("Failed to initialize schema")
+		// Perform cleanup before exiting
+		if err := db.Close(); err != nil {
+			log.Error().Err(err).Msg("Failed to close database connection during cleanup")
+		}
 		os.Exit(1)
 	}
 
@@ -424,7 +433,7 @@ func main() {
 	}
 	s.routes()
 
-	s.connectOnStartup(osName)
+	s.connectOnStartup()
 
 	if serverMode == Stdio {
 		startStdioMode(s)
