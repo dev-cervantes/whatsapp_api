@@ -304,7 +304,7 @@ func shouldRetry(status int, err error) bool {
 		return false
 	}
 
-	return status >= 500
+	return true
 }
 
 // webhook for regular messages
@@ -402,7 +402,7 @@ func callHookWithHmac(myurl string, payload map[string]string, userID string, en
 
 		status := resp.StatusCode()
 
-		if status >= 200 && status < 309 {
+		if status >= 200 && status < 300 {
 			cb.Success()
 
 			log.Info().
