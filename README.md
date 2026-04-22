@@ -49,6 +49,7 @@ When HMAC is configured, all webhooks include an `x-hmac-signature` header with 
 
 **Optional:**
 * Docker (for containerization)
+* WSL (for Elastic Beanstalk AWS)
 
 ## Updating dependencies
 
@@ -64,6 +65,20 @@ go mod tidy
 ```
 go build .
 ```
+
+## Deploy
+### Aplicação na AWS Elastic Beanstalk para versões
+
+**Para realizar o deploy da aplicação no Elastic Beanstalk da AWS, siga os passos:**
+
+1. No Windows, instale e configure o WSL (Windows Subsystem for Linux) para executar comandos Linux.
+2. Abra o terminal do WSL na pasta do projeto.
+3. Execute o script de deploy:
+
+```bash
+./deploy.sh
+```
+4. Na AWS em Elastic Beanstalk -> Ambientes -> "Ambiente da api", clique em Fazer upload e implantar, em "escolher arquivo" busque o arquivo whatsappapi.zip criado pelo deploy e clique em Implantar. 
 
 ## Homebrew installation
 
