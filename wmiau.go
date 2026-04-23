@@ -158,6 +158,10 @@ func getUserWebhookUrl(token string) string {
 func sendEventWithWebHook(mycli *MyClient, postmap map[string]interface{}, path string) {
 	webhookurl := getUserWebhookUrl(mycli.token)
 
+	if webhookurl == "" && *globalWebhook == "" {
+		return
+	}
+
 	// Get updated events from cache/database
 	subscribedEvents, err := updateAndGetUserSubscriptions(mycli)
 	if err != nil {
@@ -212,9 +216,13 @@ func sendEventWithWebHook(mycli *MyClient, postmap map[string]interface{}, path 
 	sendToUserWebHookWithHmac(webhookurl, path, jsonData, mycli.userID, mycli.token, encryptedHmacKey)
 
 	// Get global webhook if configured
-	go sendToGlobalWebHook(jsonData, mycli.token, mycli.userID)
+	if *globalWebhook != "" {
+		go sendToGlobalWebHook(jsonData, mycli.token, mycli.userID)
+	}
 
-	go sendToGlobalRabbit(jsonData, mycli.token, mycli.userID)
+	if rabbitEnabled {
+		go sendToGlobalRabbit(jsonData, mycli.token, mycli.userID)
+	}
 }
 
 func checkIfSubscribedToEvent(subscribedEvents []string, eventType string, userId string) bool {
