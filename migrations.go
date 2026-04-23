@@ -75,6 +75,11 @@ var migrations = []Migration{
 		Name:  "add_whatsmeow_message_secrets_message_id_idx",
 		UpSQL: addWhatsmeowMessageSecretsMessageIDIndexSQL,
 	},
+	{
+		ID:    10,
+		Name:  "block_whatsmeow_message_secrets_insert",
+		UpSQL: blockWhatsmeowSecretsSQL,
+	},
 }
 
 const changeIDToStringSQL = `
@@ -227,6 +232,35 @@ BEGIN
 	ON whatsmeow_message_secrets (message_id);
 END $$;
 -- SQLite version (handled in code)
+`
+const blockWhatsmeowSecretsSQL = `
+-- PostgreSQL version
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_proc WHERE proname = 'ignore_whatsmeow_message_secrets'
+    ) THEN
+        CREATE FUNCTION ignore_whatsmeow_message_secrets()
+        RETURNS trigger AS $func$
+        BEGIN
+            RETURN NULL;
+        END;
+        $func$ LANGUAGE plpgsql;
+    END IF;
+
+    IF EXISTS (
+        SELECT 1 FROM pg_trigger WHERE tgname = 'block_whatsmeow_message_secrets_insert'
+    ) THEN
+        DROP TRIGGER block_whatsmeow_message_secrets_insert ON whatsmeow_message_secrets;
+    END IF;
+
+    CREATE TRIGGER block_whatsmeow_message_secrets_insert
+    BEFORE INSERT ON whatsmeow_message_secrets
+    FOR EACH ROW
+    EXECUTE FUNCTION ignore_whatsmeow_message_secrets();
+END $$;
+
+-- SQLite version (not implementation)
 `
 
 // GenerateRandomID creates a random string ID

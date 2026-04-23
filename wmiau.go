@@ -825,6 +825,10 @@ func (mycli *MyClient) myEventHandler(rawEvt interface{}) {
 		return
 	case *events.Message:
 
+		if !mycli.s.saveHistory {
+			return
+		}
+
 		var s3Config struct {
 			Enabled       string `db:"s3_enabled"`
 			MediaDelivery string `db:"media_delivery"`
@@ -1094,6 +1098,11 @@ func (mycli *MyClient) myEventHandler(rawEvt interface{}) {
 			log.Info().Str("from", evt.From.String()).Msg("User is now online")
 		}
 	case *events.HistorySync:
+
+		if !mycli.s.saveHistory {
+			return
+		}
+
 		postmap["type"] = "HistorySync"
 		dowebhook = 1
 

@@ -37,10 +37,11 @@ const (
 )
 
 type server struct {
-	db     *sqlx.DB
-	router *mux.Router
-	exPath string
-	mode   ServerMode
+	db          *sqlx.DB
+	router      *mux.Router
+	exPath      string
+	mode        ServerMode
+	saveHistory bool
 }
 
 // Replace the global variables
@@ -425,11 +426,15 @@ func main() {
 		serverMode = Stdio
 	}
 
+	// Get configuration message history
+	saveHistory := os.Getenv("SAVE_MESSAGE_HISTORY") == "true"
+
 	s := &server{
-		router: mux.NewRouter(),
-		db:     db,
-		exPath: exPath,
-		mode:   serverMode,
+		router:      mux.NewRouter(),
+		db:          db,
+		exPath:      exPath,
+		mode:        serverMode,
+		saveHistory: saveHistory,
 	}
 	s.routes()
 
