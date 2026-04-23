@@ -72,8 +72,8 @@ func initializePostgres(config DatabaseConfig) (*sqlx.DB, error) {
 	)
 
 	db, err := sqlx.Open("postgres", dsn)
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(10)
+	db.SetMaxOpenConns(60)
+	db.SetMaxIdleConns(20)
 	db.SetConnMaxLifetime(5 * time.Minute)
 	db.SetConnMaxIdleTime(2 * time.Minute)
 
