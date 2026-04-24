@@ -72,10 +72,6 @@ func initializePostgres(config DatabaseConfig) (*sqlx.DB, error) {
 	)
 
 	db, err := sqlx.Open("postgres", dsn)
-	db.SetMaxOpenConns(500)
-	db.SetMaxIdleConns(450)
-	db.SetConnMaxLifetime(15 * time.Minute)
-	db.SetConnMaxIdleTime(12 * time.Minute)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to open postgres connection: %w", err)
@@ -84,6 +80,11 @@ func initializePostgres(config DatabaseConfig) (*sqlx.DB, error) {
 	if err := db.Ping(); err != nil {
 		return nil, fmt.Errorf("failed to ping postgres database: %w", err)
 	}
+
+	db.SetMaxOpenConns(500)
+	db.SetMaxIdleConns(450)
+	db.SetConnMaxLifetime(15 * time.Minute)
+	db.SetConnMaxIdleTime(12 * time.Minute)
 
 	return db, nil
 }

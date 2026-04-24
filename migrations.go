@@ -249,7 +249,7 @@ BEGIN
     END IF;
 
     IF EXISTS (
-        SELECT 1 FROM pg_trigger WHERE tgname = 'block_whatsmeow_message_secrets_insert'
+       SELECT 1 FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE t.tgname = 'block_whatsmeow_message_secrets_insert' AND c.relname = 'whatsmeow_message_secrets'
     ) THEN
         DROP TRIGGER block_whatsmeow_message_secrets_insert ON whatsmeow_message_secrets;
     END IF;
@@ -260,7 +260,7 @@ BEGIN
     EXECUTE FUNCTION ignore_whatsmeow_message_secrets();
 END $$;
 
--- SQLite version (not implementation)
+-- SQLite version (handled in code)
 `
 
 // GenerateRandomID creates a random string ID
@@ -485,6 +485,12 @@ func applyMigration(db *sqlx.DB, migration Migration) error {
 			_, err = tx.Exec(migration.UpSQL)
 		}
 	} else if migration.ID == 9 {
+		if db.DriverName() == "sqlite" {
+			err = nil
+		} else {
+			_, err = tx.Exec(migration.UpSQL)
+		}
+	} else if migration.ID == 10 {
 		if db.DriverName() == "sqlite" {
 			err = nil
 		} else {

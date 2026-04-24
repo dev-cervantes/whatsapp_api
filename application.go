@@ -427,7 +427,8 @@ func main() {
 	}
 
 	// Get configuration message history
-	saveHistory := os.Getenv("SAVE_MESSAGE_HISTORY") == "true"
+	val := os.Getenv("SAVE_MESSAGE_HISTORY")
+	saveHistory := strings.ToLower(val) == "true" || val == "1"
 
 	s := &server{
 		router:      mux.NewRouter(),
