@@ -75,6 +75,11 @@ var migrations = []Migration{
 		Name:  "add_whatsmeow_message_secrets_message_id_idx",
 		UpSQL: addWhatsmeowMessageSecretsMessageIDIndexSQL,
 	},
+	{
+		ID:    10,
+		Name:  "block_whatsmeow_message_secrets_insert",
+		UpSQL: blockWhatsmeowSecretsSQL,
+	},
 }
 
 const changeIDToStringSQL = `
@@ -226,6 +231,35 @@ BEGIN
 	CREATE INDEX IF NOT EXISTS whatsmeow_message_secrets_message_id_idx
 	ON whatsmeow_message_secrets (message_id);
 END $$;
+-- SQLite version (handled in code)
+`
+const blockWhatsmeowSecretsSQL = `
+-- PostgreSQL version
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_proc WHERE proname = 'ignore_whatsmeow_message_secrets'
+    ) THEN
+        CREATE FUNCTION ignore_whatsmeow_message_secrets()
+        RETURNS trigger AS $func$
+        BEGIN
+            RETURN NULL;
+        END;
+        $func$ LANGUAGE plpgsql;
+    END IF;
+
+    IF EXISTS (
+       SELECT 1 FROM pg_trigger t JOIN pg_class c ON c.oid = t.tgrelid WHERE t.tgname = 'block_whatsmeow_message_secrets_insert' AND c.relname = 'whatsmeow_message_secrets'
+    ) THEN
+        DROP TRIGGER block_whatsmeow_message_secrets_insert ON whatsmeow_message_secrets;
+    END IF;
+
+    CREATE TRIGGER block_whatsmeow_message_secrets_insert
+    BEFORE INSERT ON whatsmeow_message_secrets
+    FOR EACH ROW
+    EXECUTE FUNCTION ignore_whatsmeow_message_secrets();
+END $$;
+
 -- SQLite version (handled in code)
 `
 
@@ -451,6 +485,12 @@ func applyMigration(db *sqlx.DB, migration Migration) error {
 			_, err = tx.Exec(migration.UpSQL)
 		}
 	} else if migration.ID == 9 {
+		if db.DriverName() == "sqlite" {
+			err = nil
+		} else {
+			_, err = tx.Exec(migration.UpSQL)
+		}
+	} else if migration.ID == 10 {
 		if db.DriverName() == "sqlite" {
 			err = nil
 		} else {

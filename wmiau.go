@@ -1102,6 +1102,11 @@ func (mycli *MyClient) myEventHandler(rawEvt interface{}) {
 			log.Info().Str("from", evt.From.String()).Msg("User is now online")
 		}
 	case *events.HistorySync:
+
+		if !mycli.s.saveHistory {
+			return
+		}
+
 		postmap["type"] = "HistorySync"
 		dowebhook = 1
 
