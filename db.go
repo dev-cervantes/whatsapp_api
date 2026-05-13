@@ -19,7 +19,6 @@ type DatabaseConfig struct {
 	Password string
 	Name     string
 	Path     string
-	SSLMode  string
 }
 
 func InitializeDatabase(exPath, dataDirFlag string) (*sqlx.DB, error) {
@@ -37,10 +36,9 @@ func getDatabaseConfig(exPath, dataDirFlag string) DatabaseConfig {
 	dbName := os.Getenv("DB_NAME")
 	dbHost := os.Getenv("DB_HOST")
 	dbPort := os.Getenv("DB_PORT")
-	dbSSLMode := os.Getenv("DB_SSLMODE")
 
 	// If all PostgreSQL configs are present, use PostgreSQL
-	if dbUser != "" && dbPassword != "" && dbName != "" && dbHost != "" && dbPort != "" && dbSSLMode != "" {
+	if dbUser != "" && dbPassword != "" && dbName != "" && dbHost != "" && dbPort != "" {
 		return DatabaseConfig{
 			Type:     "postgres",
 			Host:     dbHost,
@@ -48,7 +46,6 @@ func getDatabaseConfig(exPath, dataDirFlag string) DatabaseConfig {
 			User:     dbUser,
 			Password: dbPassword,
 			Name:     dbName,
-			SSLMode:  dbSSLMode,
 		}
 	}
 
@@ -67,8 +64,8 @@ func getDatabaseConfig(exPath, dataDirFlag string) DatabaseConfig {
 
 func initializePostgres(config DatabaseConfig) (*sqlx.DB, error) {
 	dsn := fmt.Sprintf(
-		"user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
-		config.User, config.Password, config.Name, config.Host, config.Port, config.SSLMode,
+		"user=%s password=%s dbname=%s host=%s port=%s",
+		config.User, config.Password, config.Name, config.Host, config.Port,
 	)
 
 	db, err := sqlx.Open("postgres", dsn)
