@@ -3,6 +3,8 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
+	"crypto/subtle"
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
@@ -130,7 +132,10 @@ func (s *server) GetHealth() http.HandlerFunc {
 func (s *server) authadmin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("Authorization")
-		if token != *adminToken {
+		tokenHash := sha256.Sum256([]byte(token))
+		adminHash := sha256.Sum256([]byte(*adminToken))
+		// Constant-time compare to avoid timing-attack leak of admin token bytes.
+		if subtle.ConstantTimeCompare(tokenHash[:], adminHash[:]) != 1 {
 			s.Respond(w, r, http.StatusUnauthorized, errors.New("unauthorized"))
 			return
 		}
@@ -2763,6 +2768,10 @@ func (s *server) SendPoll() http.HandlerFunc {
 			s.Respond(w, r, http.StatusInternalServerError, errors.New(fmt.Sprintf("failed to send poll: %v", err)))
 			return
 		}
+
+		// Remember the plaintext options so incoming vote webhooks can
+		// resolve the hashed selections back to readable strings.
+		clientManager.SetPollOptions(txtid, msgid, req.Options)
 
 		// Publish sent message event to RabbitMQ
 		token := r.Context().Value("userinfo").(Values).Get("Token")
