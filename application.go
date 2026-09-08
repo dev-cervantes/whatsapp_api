@@ -397,8 +397,8 @@ func main() {
 	var storeConnStr string
 	if config.Type == "postgres" {
 		storeConnStr = fmt.Sprintf(
-			"user=%s password=%s dbname=%s host=%s port=%s sslmode=%s",
-			config.User, config.Password, config.Name, config.Host, config.Port, config.SSLMode,
+			"user=%s password=%s dbname=%s host=%s port=%s",
+			config.User, config.Password, config.Name, config.Host, config.Port,
 		)
 		container, err = sqlstore.New(context.Background(), "postgres", storeConnStr, dbLog)
 	} else {
