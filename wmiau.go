@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	"sync"
+
 	"github.com/go-resty/resty/v2"
 	"github.com/jmoiron/sqlx"
 	"github.com/mdp/qrterminal/v3"
@@ -32,7 +34,6 @@ import (
 	"go.mau.fi/whatsmeow/types/events"
 	waLog "go.mau.fi/whatsmeow/util/log"
 	"golang.org/x/net/proxy"
-	"sync"
 )
 
 // db field declaration as *sqlx.DB
@@ -395,7 +396,7 @@ func (s *server) connectOnStartup(systemName *string) {
 			log.Info().Str("events", eventstring).Str("jid", jid).Msg("Attempt to connect")
 			kill := make(chan bool, 1)
 			setKillChannel(txtid, kill)
-			go s.startClient(txtid, jid, token, kill, systemName)
+			go s.startClient(txtid, jid, token, subscribedEvents, kill, systemName)
 
 			// Initialize S3 client if configured
 			go func(userID string) {
@@ -610,7 +611,7 @@ func getPlatformTypeEnum(platformType string) *waCompanionReg.DeviceProps_Platfo
 	}
 }
 
-func (s *server) startClient(userID string, textjid string, token string, subscriptions []string,kill chan bool, systemName *string) {
+func (s *server) startClient(userID string, textjid string, token string, subscriptions []string, kill chan bool, systemName *string) {
 	log.Info().Str("userid", userID).Str("jid", textjid).Msg("Starting websocket connection to Whatsapp")
 
 	// Connection retry constants
@@ -1185,22 +1186,22 @@ func (mycli *MyClient) myEventHandler(rawEvt interface{}) {
 			}
 		}
 
-    if encMessage := evt.Message.GetSecretEncryptedMessage(); encMessage != nil {
-        decrypted, derr := mycli.WAClient.DecryptSecretEncryptedMessage(context.Background(), evt)
-        if derr != nil {
-            log.Warn().
-                Err(derr).
-                Str("messageID", evt.Info.ID).
-                Str("secretEncType", encMessage.GetSecretEncType().String()).
-                Msg("DecryptSecretEncryptedMessage failed")
-        } else if decrypted != nil {
-            log.Info().
-                Str("messageID", evt.Info.ID).
-                Str("secretEncType", encMessage.GetSecretEncType().String()).
-                Msg("Decrypted secretEncryptedMessage; swapping evt.Message")
-                evt.Message = decrypted
-        }
-    }
+		if encMessage := evt.Message.GetSecretEncryptedMessage(); encMessage != nil {
+			decrypted, derr := mycli.WAClient.DecryptSecretEncryptedMessage(context.Background(), evt)
+			if derr != nil {
+				log.Warn().
+					Err(derr).
+					Str("messageID", evt.Info.ID).
+					Str("secretEncType", encMessage.GetSecretEncType().String()).
+					Msg("DecryptSecretEncryptedMessage failed")
+			} else if decrypted != nil {
+				log.Info().
+					Str("messageID", evt.Info.ID).
+					Str("secretEncType", encMessage.GetSecretEncType().String()).
+					Msg("Decrypted secretEncryptedMessage; swapping evt.Message")
+				evt.Message = decrypted
+			}
+		}
 
 		if !*skipMedia {
 
