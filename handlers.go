@@ -298,7 +298,7 @@ func (s *server) Connect() http.HandlerFunc {
 			isConnected := clientManager.GetWhatsmeowClient(txtid).IsConnected()
 			if isConnected == true {
 				log.Warn().Str("user_id", txtid).Msg("Connect request rejected because client is already connected")
-				s.Respond(w, r, http.StatusConflict, errors.New("already connected"))
+				s.Respond(w, r, http.StatusInternalServerError, errors.New("already connected"))
 				return
 			}
 		}
