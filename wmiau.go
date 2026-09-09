@@ -396,7 +396,7 @@ func (s *server) connectOnStartup(systemName *string) {
 			log.Info().Str("events", eventstring).Str("jid", jid).Msg("Attempt to connect")
 			kill := make(chan bool, 1)
 			setKillChannel(txtid, kill)
-			go s.startClient(txtid, jid, token, subscribedEvents, kill, systemName)
+			go s.startClient(txtid, jid, token, kill, systemName)
 
 			// Initialize S3 client if configured
 			go func(userID string) {
@@ -611,7 +611,7 @@ func getPlatformTypeEnum(platformType string) *waCompanionReg.DeviceProps_Platfo
 	}
 }
 
-func (s *server) startClient(userID string, textjid string, token string, subscriptions []string, kill chan bool, systemName *string) {
+func (s *server) startClient(userID string, textjid string, token string, kill chan bool, systemName *string) {
 	log.Info().Str("userid", userID).Str("jid", textjid).Msg("Starting websocket connection to Whatsapp")
 
 	// Connection retry constants

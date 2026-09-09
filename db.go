@@ -93,7 +93,6 @@ func initializePostgres(config DatabaseConfig) (*sqlx.DB, error) {
 		Str("database", databaseName).
 		Str("schema", schemaName).
 		Str("user", config.User).
-		Str("sslmode", config.SSLMode).
 		Msg("Database connection established")
 
 	return db, nil
