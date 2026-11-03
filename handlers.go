@@ -342,8 +342,6 @@ func (s *server) Connect() http.HandlerFunc {
 		}
 
 		log.Info().Str("jid", jid).Msg("Attempt to connect")
-		kill = make(chan bool, 1)
-		setKillChannel(txtid, kill)
 		safeSystemName := systemName
 		go s.startClient(txtid, jid, token, kill, &safeSystemName)
 
